@@ -1,4 +1,6 @@
 #*
 flycheck*
-#*
 .#*
+GPATH
+GRTAGS
+GTAGS
