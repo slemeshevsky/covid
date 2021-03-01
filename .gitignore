@@ -4,3 +4,4 @@ flycheck*
 GPATH
 GRTAGS
 GTAGS
+/covid/__pycache__/*.pyc

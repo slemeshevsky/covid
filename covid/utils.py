@@ -21,7 +21,7 @@ def get_data(df, country='Belarus', province='--'):
          data['2020-04-18'] = data['2020-04-17'] + 518
          data['2020-04-19'] = data['2020-04-18'] + 510
          # data['2020-04-20'] = data['2020-04-20'] - (518 + 510)
-    if country == 'Span':
+    if country == 'Spain':
          data['2020-04-24'] = data['2020-04-24':]+10000
 
     delta = np.zeros_like(data.values, dtype='float64')
@@ -33,10 +33,19 @@ def get_data(df, country='Belarus', province='--'):
 
     return country_res, data
 
-def read(country, province=None):
+def read(country, province=None, with_recovered=False):
     province = province if province is not None else '--'
     df = pd.read_csv('https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv')
     country, data = get_data(df, country, province=province) #'Belarus') # United Kingdom') # Belarus') # 'Belarus') # 'Germany') # 'Belgium')
+    if with_recovered:
+        df = pd.read_csv('https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv')
+        country, recovered = get_data(df, country, province)
+        df = pd.read_csv('https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv')
+        country, deaths = get_data(df, country, province)
+        data['Recovered'] = recovered['X'].copy()
+        data['dR'] = recovered['Delta'].copy()
+        data['Deaths'] = deaths['X'].copy()
+        data['dD'] = deaths['Delta'].copy()
     return data, country
 
 def generate_verhulst_data(left=50, right=50, alpha=0.2, beta=0.05, gamma=0.07):

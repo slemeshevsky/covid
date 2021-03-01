@@ -42,8 +42,8 @@ out : covid.ExponentModel
     return out
 
 
-data, country = read('Belarus')
-start_date = '2020-05-01'
+data, country = read('Belarus', with_recovered=True)
+# start_date = '2020-05-01'
 
-work_data = data.loc[:'2020-07-30']
-models = exponent(work_data)
+# work_data = data.loc[:'2020-07-30']
+# models = exponent(work_data)
