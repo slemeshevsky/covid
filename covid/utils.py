@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 
+
 def get_data(df, country='Belarus', province='--'):
     if len(country) == 0:
         print('No information on {}'.format(country))
@@ -15,14 +16,15 @@ def get_data(df, country='Belarus', province='--'):
 
     tmp = df[df['Country/Region'] == country]
     df_ = tmp[tmp['Province/State'].isna()] if province == '--' else tmp[tmp['Province/State'] == province]
-    all_data = pd.DataFrame(df_.T[4:].values, index=pd.date_range(start=df.columns[4:][0], end=df.columns[4:][-1]), columns=['Total'])
+    all_data = pd.DataFrame(df_.T[4:].values, index=pd.date_range(
+        start=df.columns[4:][0], end=df.columns[4:][-1]), columns=['Total'])
     data = all_data['Total'][all_data['Total'] > 0]
     if country == 'Belarus':
-         data['2020-04-18'] = data['2020-04-17'] + 518
-         data['2020-04-19'] = data['2020-04-18'] + 510
-         # data['2020-04-20'] = data['2020-04-20'] - (518 + 510)
+        data['2020-04-18'] = data['2020-04-17'] + 518
+        data['2020-04-19'] = data['2020-04-18'] + 510
+        # data['2020-04-20'] = data['2020-04-20'] - (518 + 510)
     if country == 'Spain':
-         data['2020-04-24'] = data['2020-04-24':]+10000
+        data['2020-04-24'] = data['2020-04-24':]+10000
 
     delta = np.zeros_like(data.values, dtype='float64')
     delta[0] = data.values[0]
@@ -33,10 +35,11 @@ def get_data(df, country='Belarus', province='--'):
 
     return country_res, data
 
+
 def read(country, province=None, with_recovered=False):
     province = province if province is not None else '--'
     df = pd.read_csv('https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv')
-    country, data = get_data(df, country, province=province) #'Belarus') # United Kingdom') # Belarus') # 'Belarus') # 'Germany') # 'Belgium')
+    country, data = get_data(df, country, province=province)
     if with_recovered:
         df = pd.read_csv('https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv')
         country, recovered = get_data(df, country, province)
@@ -46,7 +49,11 @@ def read(country, province=None, with_recovered=False):
         data['dR'] = recovered['Delta'].copy()
         data['Deaths'] = deaths['X'].copy()
         data['dD'] = deaths['Delta'].copy()
+
+    cols = data.columns[data.dtypes.eq('object')]
+    data[cols] = data[cols].astype(np.float64)
     return data, country
+
 
 def generate_verhulst_data(left=50, right=50, alpha=0.2, beta=0.05, gamma=0.07):
     # end = end if end is not None else datetime.today()
@@ -54,7 +61,7 @@ def generate_verhulst_data(left=50, right=50, alpha=0.2, beta=0.05, gamma=0.07):
     # alpha = 0.2
     # beta = 0.05
     # gamma = 0.07
-    p = 1/10. # np.exp(middle_date*gamma)
+    p = 1/10.  # np.exp(middle_date*gamma)
     q = (1-p)/2.
     r = (1-p)/2.
     # p = 2.
@@ -69,6 +76,7 @@ def generate_verhulst_data(left=50, right=50, alpha=0.2, beta=0.05, gamma=0.07):
     # data['Delta'].fillna(method='bfill', inplace=True)
     return data, t
 
+
 def clean_work_columns(data):
     cols = ['Delta_mean', 'X_mean', 'S_k', 'S_k_regr', 'X_mean_scaled',
             'Delta_smooth', 'X_smooth', 'X_pred', 'Delta_pred', 'W']
@@ -76,6 +84,7 @@ def clean_work_columns(data):
     for col in cols:
         if col in data.columns:
             del data[col]
+
 
 def plot_s_w(data, cols=['X'], plot_sk=False, spacing=.2):
     colors = getattr(getattr(pd.plotting, '_matplotlib').style, '_get_standard_colors')(num_colors=len(cols)+2)
@@ -104,12 +113,15 @@ def plot_s_w(data, cols=['X'], plot_sk=False, spacing=.2):
     ax.legend(lines, labels, loc=0)
     return ax
 
+
 def plot_multi(data, cols=None, spacing=0.05, **kwargs):
     from pandas import plotting
 
     # Get default color style from pandas - can be changed to any other color list
-    if cols is None: cols = data.columns
-    if len(cols) == 0: return
+    if cols is None:
+        cols = data.columns
+    if len(cols) == 0:
+        return
     colors = getattr(getattr(plotting, '_matplotlib').style, '_get_standard_colors')(num_colors=len(cols))
 
     # First axis
@@ -131,4 +143,3 @@ def plot_multi(data, cols=None, spacing=0.05, **kwargs):
 
     ax.legend(lines, labels, loc=0)
     return ax
-
