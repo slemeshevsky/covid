@@ -135,7 +135,7 @@ end : строка даты вида ``YYYY-MM-DD``
 
 Returns
 -------
-res : pandas.DataFrame с columns=['X', 'Delta'] и
+res : pandas.DataFrame с columns=['X', 'dX'] и
     index=pandas.date_range(start=start, end=end)
     Прогнозные значения
         """
@@ -147,5 +147,5 @@ res : pandas.DataFrame с columns=['X', 'Delta'] и
         x = self._decision_func(t)
         res = pd.DataFrame(x, index=indices, columns=['X'])
         delta = x[1:] - x[:-1]
-        res['Delta'] = pd.Series(delta, index=indices[1:])
+        res['dX'] = pd.Series(delta, index=indices[1:])
         return res

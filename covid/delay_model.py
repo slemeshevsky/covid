@@ -150,7 +150,7 @@ periods : Диапазон параметров :math:`l`
         x_values = self._decision_func(init, len(t))
         delta_values = x_values[1:] - x_values[:-1]
         predict = pd.DataFrame(x_values, index=t, columns=['X'])
-        predict['Delta'] = pd.Series(delta_values, index=t[1:])
+        predict['dX'] = pd.Series(delta_values, index=t[1:])
 
         return predict
 
@@ -254,6 +254,6 @@ periods : Диапазон параметров l
         x_values = self._decision_func(init, len(t))
         delta_values = x_values[1:] - x_values[:-1]
         predict = pd.DataFrame(x_values, index=t, columns=['X'])
-        predict['Delta'] = pd.Series(delta_values, index=t[1:])
+        predict['dX'] = pd.Series(delta_values, index=t[1:])
 
         return predict

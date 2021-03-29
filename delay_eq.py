@@ -7,7 +7,7 @@ from sklearn.linear_model import LinearRegression
 
 
 def smooth_q(data, eps=0.125e-2):
-    delta = data['Delta'].to_numpy().copy()
+    delta = data['dX'].to_numpy().copy()
     x = data['X'].to_numpy(dtype='float64').copy()
     for col in ['Delta_smooth', 'X_smooth']:
         if col in data.columns:
@@ -83,7 +83,7 @@ def delay_explicit(data, use_regr=False, coef=None, start=None, end=None, l=7):
     delta_pred = x_pred[1:] - x_pred[:-1]
 
     result = pd.DataFrame(x_pred, index=time, columns=['X'])
-    result['Delta'] = pd.Series(delta_pred, index=time[1:])
+    result['dX'] = pd.Series(delta_pred, index=time[1:])
     if 'X_pred' in data.columns:
         del data['X_pred']
     if 'Delta_pred' in data.columns:
@@ -103,7 +103,7 @@ def delay_eq_expl(init, r, K, start=None, end=None, l=7):
 
     delta_pred = x_pred[1:] - x_pred[:-1]
     result = pd.DataFrame(x_pred, index=t, columns=['X'])
-    result['Delta'] = pd.Series(delta_pred, index=t[1:])
+    result['dX'] = pd.Series(delta_pred, index=t[1:])
 
     return pd.DataFrame(x_pred, index=t)
 
@@ -141,7 +141,7 @@ def delay_implicit(data, use_regr=False, coef=None, start=None, end=None, init=N
     delta_pred = x_pred[1:] - x_pred[:-1]
 
     result = pd.DataFrame(x_pred, index=time, columns=['X'])
-    result['Delta'] = pd.Series(delta_pred, index=time[1:])
+    result['dX'] = pd.Series(delta_pred, index=time[1:])
     if 'X_pred' in data.columns:
         del data['X_pred']
     if 'Delta_pred' in data.columns:
@@ -161,7 +161,7 @@ def fit_sk(data, col=None, days=7, left=7, right=-8):
         Delta_col = 'Delta_'+col
     else:
         X_col = 'X'
-        Delta_col = 'Delta'
+        Delta_col = 'dX'
 
     # left = len(data) - left
     s_k(data, col=col, l=days)
@@ -189,7 +189,7 @@ def fit_w(data, col=None, days=7, left=7, right=-8):
         Delta_col = 'Delta_'+col
     else:
         X_col = 'X'
-        Delta_col = 'Delta'
+        Delta_col = 'dX'
 
     w_k(data, col=col, l=days)
     left += data[Delta_col].argmax()
@@ -319,7 +319,7 @@ def source_data_plot(country, province=None, date=None, smooth_left=False):
         # q, s = smooth_s(data, coef)
         coef, score = fit_sk(data, col='smooth', left=10)
         q, s = smooth_s(data, coef)
-    data[data.index<date]['Delta'].plot(label='Исходные данные')
+    data[data.index<date]['dX'].plot(label='Исходные данные')
     data[data.index<date]['Delta_smooth'].plot(label='Сглаженные данные')
     data[data.index<date]['Delta_mean'].plot(label='Недельное среднее')
     plt.legend()
@@ -360,7 +360,7 @@ def gamma(country):
     confirmed, country = read(country)
     df = pd.read_csv('https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv')
     country, recovered = get_data(df, country)
-    recovered.rename(columns={'X': 'X_rec', 'Delta': 'Delta_rec'}, inplace=True)
+    recovered.rename(columns={'X': 'X_rec', 'dX': 'Delta_rec'}, inplace=True)
     data = confirmed.join(recovered)
     data['sum'] = data['X'].cumsum()
     data['gamma'] = data['sum']/data['X_rec']
@@ -371,7 +371,7 @@ def gamma(country):
 
     ax_new = ax.twinx()
     ax_new.spines['right'].set_position(('axes', 1))
-    data['Delta'].plot(ax=ax_new, label='Ежедневный прирост', color='y')
+    data['dX'].plot(ax=ax_new, label='Ежедневный прирост', color='y')
     ax_new.set_ylabel(ylabel='Ежедневный прирост')
     #ax_new.grid(linestyle=':')
     line, label = ax_new.get_legend_handles_labels()
@@ -388,9 +388,9 @@ def test_u(country):
     confirmed, country = read(country)
     df = pd.read_csv('https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv')
     country, recovered = get_data(df, country)
-    recovered.rename(columns={'X': 'X_rec', 'Delta': 'Delta_rec'}, inplace=True)
+    recovered.rename(columns={'X': 'X_rec', 'dX': 'Delta_rec'}, inplace=True)
     data = confirmed.join(recovered)
-    data['u'] = (data['Delta'] + data['Delta_rec'])/data['X']
+    data['u'] = (data['dX'] + data['Delta_rec'])/data['X']
     data['v'] = data['X'] + data['X_rec']
     data[['u', 'v']].plot(x='v')
     plt.title(country)

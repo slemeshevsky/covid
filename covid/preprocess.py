@@ -26,7 +26,7 @@ def smooth_q(data, eps=0.125e-2):
     _________
     Сглаженные данные также дописываются во входной data
     """
-    delta = data['Delta'].to_numpy().copy()
+    delta = data['dX'].to_numpy().copy()
     x = data['X'].to_numpy(dtype='float64').copy()
     for col in ['Delta_smooth', 'X_smooth']:
         if col in data.columns:
