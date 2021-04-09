@@ -57,7 +57,7 @@ ax.plot(deltas['X'], deltas['I'])
 skm = lm.LinearRegression(fit_intercept=False, positive=True)
 for n in values:
     tag = '$ I_{' + str(n) + '} $'
-    x = pd.DataFrame(deltas, columns=['X', *tags_deltas[:n-1]]).to_numpy()
+    x = pd.DataFrame(deltas, columns=['X', *reversed(tags_deltas[:n-1])]).to_numpy()
     y = deltas['I'].values
     skm.fit(x, y)
     result = np.zeros_like(y)
