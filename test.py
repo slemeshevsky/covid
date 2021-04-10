@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from covid.utils import read
+from covid.preprocess import smooth_average
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,13 +14,13 @@ import sklearn.linear_model as lm
 
 def calc_delta(data, n = 1):
     delta = np.zeros_like(data['X'].values)
-    #print(delta[n:].size)
-    #print(data['X'].values[1:-n].size)
-    #print(data['X'].values[:-n-1].size)
     if n == 1:
         delta[n:] = data['X'].values[n:] - data['X'].values[:-n] # \Delta X_k(t) = X(t) - X(t-k)
+        #delta[n+6:] = data['X'].values[n+6:] - data['X'].values[:-(n+6)] # for week's data.
     else:
         delta[n:] = data['X'].values[1:-n+1] - data['X'].values[:-n] # \Delta X_k(t) = X(t-k+1) - X(t-k)
+        #n = n*7 # for week's data.
+        #delta[n:] = data['X'].values[n:] - data['X'].values[:-n] # \Delta X_k(t) = X(t-k+1) - X(t-k)
     tag = '$ dX_{' + str(n) + '} $'
     data[tag] = delta
     return tag
@@ -34,16 +35,26 @@ def calc_deltas(data, deltas = [1]):
 path = 'C:/Users/user/Desktop/Нужная всячина/Projects/COVID/Data/COVID-19/'
 
 country = 'Belarus'
-left = 1000
+name = 'weeks'
+left = 0
 right = 70000
 values = np.array([10, 15, 20, 25, 30])
+#values = np.array([10, 20, 30, 40, 50])
+#values = np.array([2, 3, 4, 5]) # for week's data.
 # Data preparation.
 data, country = read(country, with_recovered=True, path = path)
+data = smooth_average(data, 7)
+
 deltas = pd.DataFrame(data['X'])
+tags_deltas = calc_deltas(deltas, range(1, values.max()+1))
 deltas['I'] = data['X'] - data['R']
-tags_deltas = calc_deltas(deltas, range(1, 30))
-deltas = deltas[(deltas['X'] > left) & (deltas['X'] < right)]
+deltas = deltas[(deltas['X'] > left)
+                & (deltas['X'] < right)
+#                & (deltas[tags_deltas[-1]] != 0) # for excluding zeros.
+                ]
+#deltas = deltas.iloc[::7, :] # for week's data.
 print(deltas)
+
 
 tags_regr = []
 for val in values:
@@ -57,20 +68,22 @@ ax.plot(deltas['X'], deltas['I'])
 skm = lm.LinearRegression(fit_intercept=False, positive=True)
 for n in values:
     tag = '$ I_{' + str(n) + '} $'
-    x = pd.DataFrame(deltas, columns=['X', *reversed(tags_deltas[:n-1])]).to_numpy()
+    x = pd.DataFrame(deltas, columns=[*tags_deltas[:n]]).to_numpy()
+    #x = pd.DataFrame(deltas, columns=[*reversed(tags_deltas[:n])]).to_numpy() # - for reversed data vectors.
     y = deltas['I'].values
     skm.fit(x, y)
     result = np.zeros_like(y)
     for i in range(n):
         result += skm.coef_[i]*x[:,i]
     coefs[tag][:n] = skm.coef_
+    #coefs[tag][-n:] = skm.coef_ # - shift reversed values.
     deltas[tag] = result
 
     legend.append(tag)
     ax.plot(deltas['X'], deltas[tag], linewidth=1)
 ax.legend(legend)
 plt.title(country)
-plt.savefig('results/{0}_regrIfromX.pdf'.format(country))
+plt.savefig('results/{0}_{1}_regrIfromX.pdf'.format(country, name))
 # Plotting regression from time.
 fig, ax = plt.subplots()
 legend = ['I']
@@ -83,11 +96,11 @@ ax.legend(legend)
 plt.title(country)    
 plt.xticks(rotation=90)
 plt.subplots_adjust(bottom=0.2)
-plt.savefig('results/{0}_regrIfromT.pdf'.format(country))
+plt.savefig('results/{0}_{1}_regrIfromT.pdf'.format(country, name))
 # Plotting coefficients.
 fig, ax = plt.subplots()
 for tag in tags_regr:
     ax.plot(coefs.index, coefs[tag])
 ax.legend(tags_regr)
 plt.title('Coefficients of regression')
-plt.savefig('results/{0}_regrCoeffs.pdf'.format(country))
+plt.savefig('results/{0}_{1}_regrCoeffs.pdf'.format(country, name))
