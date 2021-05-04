@@ -54,7 +54,7 @@ def plot_weights(features, weights, norms, show_fig=True, sorting=True):
     axs[0].set_xlabel("Веса")
     axs[0].set_title("Коэффициенты регрессии")
 
-    sns.lineplot(y=norms, x=features, ax=axs[1])
+    sns.barplot(x=norms, y=features, ax=axs[1])
     axs[1].set_title('$|| I - \delta_k$ ||')
     
     fig.suptitle('Окно = {}'.format(len(features)))
@@ -62,6 +62,24 @@ def plot_weights(features, weights, norms, show_fig=True, sorting=True):
     if show_fig:
         plt.show()
 
+def plot_infected(model, x_train, y_train, n):
+    y_pred = model.predict(x_train)
+    coef_first = model.coef_.copy()
+    coef_second = model.coef_.copy()
+    coef_first[n:] = 0.0
+    coef_second[:n] = 0.0
+    y_pred_1 = np.dot(coef_first, x_train.T)
+    y_pred_2 = np.dot(coef_second, x_train.T)
+    fig, ax = plt.subplots()
+    sns.lineplot(x=x_train.index, y=y_train, ax=ax, label='Сглаженные данные')
+    sns.lineplot(x=x_train.index, y=y_pred, ax=ax, label='Регрессия')
+    sns.lineplot(x=x_train.index, y=y_pred_1, ax=ax, label='Первая группа коэффициентов')
+    sns.lineplot(x=x_train.index, y=y_pred_2, ax=ax, label='Вторая группа коэффициентов')
+
+    fig.suptitle('Распределение инфицированных для окна {}'.format(len(model.coef_)))
+    plt.savefig('results/Belarus_infected_{}'.format(len(model.coef_)))
+
+    
 
 path = '../COVID-19/'
 
@@ -72,7 +90,7 @@ right = 70000
 data, country = read(country, with_recovered=True, path = path)
 data_sm = smooth_average(data, 7)
 
-values = np.arange(30, 41)
+values = np.arange(30, 51)
 delta = data_sm[['X','dX']].loc[(data_sm['X']>left) & (data_sm['X'] < right)].copy()
 features, tex_features = calc_deltas(delta, values)
 X_train = delta[features[::-1]].copy()
@@ -83,6 +101,12 @@ for wnd in values:
     model.fit(X_train[features[:wnd]], y_train)
     norms = [np.linalg.norm(y_train - X_train[f]) for f in features[:wnd]]
     plot_weights(tex_features[:wnd], model.coef_, norms, show_fig=False, sorting=False)
+
+
+for wnd in values:
+    model.fit(X_train[features[:wnd]], y_train)
+    plot_infected(model, X_train[features[:wnd]], y_train, 25)
+
 
 tags_regr = []
 for val in values:
