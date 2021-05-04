@@ -4,5 +4,9 @@ flycheck*
 GPATH
 GRTAGS
 GTAGS
-/covid/__pycache__/*.pyc
+/covid/__pycache__/
 /results/
+/.ipynb_checkpoints/*.py
+/.ipynb_checkpoints/
+/Untitled.ipynb
+/__pycache__/
