@@ -102,3 +102,21 @@ tags_regr = []
 for val in values:
     tags_regr.append('$ I_{' + str(val) + '} $')
 coefs = pd.DataFrame(np.zeros((values.max(), values.size)), index=range(1, values.max()+1), columns=tags_regr)
+
+# Построение совместного графика I, \Delta R и \Delta X.
+data_sm['I'] = data_sm['X'] - data_sm['R']
+data_cut = data_sm[(data_sm['X'] > left) & (data_sm['X'] < right)].copy()
+poss = np.array([np.dot(Y_train, X_train[f]) / np.linalg.norm(X_train[f]) for f in features]).argmax()
+
+fig, ax = plt.subplots()
+legend = ['I', '$ \Delta R $', '$ \Delta X_{' + str(poss) + '} $']
+
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+ax.plot(data_cut['X'], scaler.fit_transform(data_cut[['I']]))
+ax.plot(data_cut['X'], scaler.fit_transform(data_cut[['R']]))
+ax.plot(delta['X'], scaler.fit_transform(delta[[features[poss]]]))
+
+ax.legend(legend)
+plt.title(country)
+plt.savefig('results/Belarus_IdRdX.pdf')
