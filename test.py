@@ -114,7 +114,7 @@ legend = ['I', '$ \Delta R $', '$ \Delta X_{' + str(poss) + '} $']
 from sklearn.preprocessing import MinMaxScaler
 scaler = MinMaxScaler()
 ax.plot(data_cut['X'], scaler.fit_transform(data_cut[['I']]))
-ax.plot(data_cut['X'], scaler.fit_transform(data_cut[['R']]))
+ax.plot(data_cut['X'], scaler.fit_transform(data_cut[['dR']]))
 ax.plot(delta['X'], scaler.fit_transform(delta[[features[poss]]]))
 
 ax.legend(legend)
