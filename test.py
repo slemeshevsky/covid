@@ -120,3 +120,24 @@ ax.plot(delta['X'], scaler.fit_transform(delta[[features[poss]]]))
 ax.legend(legend)
 plt.title(country)
 plt.savefig('results/Belarus_IdRdX.pdf')
+
+# Построение регрессии для возростающей и убывающей частей первой волны.
+fig, ax = plt.subplots()
+legend = ['I', 'left regression', 'right regression']
+ax.plot(data_cut['X'], data_cut['I'])
+
+border = data_cut.index[data_cut['I'].argmax()]
+frames = [data_cut[data_cut.index <= border],
+          data_cut[data_cut.index >= border]]
+
+for frame in frames:
+    model = lm.LinearRegression(fit_intercept=False, positive=True)
+    X_train = delta[features[::-1]].loc[frame.index].copy()[features[:values.max()]]
+    Y_train = data_sm['I'].loc[frame.index].copy()
+    model.fit(X_train, Y_train)
+    ax.plot(frame['X'], model.predict(X_train))
+   
+ax.legend(legend) 
+plt.title(country)
+plt.savefig('results/Belarus_left-right_regression.pdf')
+plt.close()
