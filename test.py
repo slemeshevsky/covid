@@ -15,19 +15,6 @@ import sklearn.linear_model as lm
 
 plt.ioff()
 
-def calc_delta(data, n = 1):
-    delta = np.zeros_like(data['X'].values)
-    if n == 1:
-        delta[n:] = data['X'].values[n:] - data['X'].values[:-n] # \Delta X_k(t) = X(t) - X(t-k)
-        #delta[n+6:] = data['X'].values[n+6:] - data['X'].values[:-(n+6)] # for week's data.
-    else:
-        delta[n:] = data['X'].values[1:-n+1] - data['X'].values[:-n] # \Delta X_k(t) = X(t-k+1) - X(t-k)
-        #n = n*7 # for week's data.
-        #delta[n:] = data['X'].values[n:] - data['X'].values[:-n] # \Delta X_k(t) = X(t-k+1) - X(t-k)
-    tag = 'dX_' + str(n)
-    data[tag] = delta
-    return tag
-
 def calc_deltas(data, wnds=[1]):
     tags = []
     tex_tags = []
@@ -58,11 +45,11 @@ def plot_weights(features, weights, norms, show_fig=False, sorting=True):
 
     sns.scatterplot(x=norms, y=features, ax=axs[1])
     axs[1].set_title('$|| I - \delta_k$ ||')
-
     fig.suptitle('Окно = {}'.format(len(features)))
     plt.savefig('results/Belarus_regrCoeffs_wind_{}'.format(len(features)))
     if show_fig:
         plt.show()
+    plt.close()
 
 def plot_infected(model, x_train, y_train, n):
     y_pred = model.predict(x_train)
@@ -80,6 +67,7 @@ def plot_infected(model, x_train, y_train, n):
 
     fig.suptitle('Распределение инфицированных для окна {}'.format(len(model.coef_)))
     plt.savefig('results/Belarus_infected_{}'.format(len(model.coef_)))
+    plt.close()
 
 path = '../COVID-19/'
 
@@ -90,18 +78,21 @@ right = 70000
 data, country = read(country, with_recovered=True, path = path)
 data_sm = smooth_average(data, 7)
 
-values = np.arange(30, 51)
+values = np.arange(35, 45)
 delta = data_sm[['X','dX']].loc[(data_sm['X']>left) & (data_sm['X'] < right)].copy()
 features, tex_features = calc_deltas(delta, values)
-X_train = delta[features[::-1]].copy()
-y_train = (data_sm['X'] - data_sm['R']).loc[(data_sm['X']>left) & (data_sm['X'] < right)].copy()
 
+# Построение графиков коэффициентов с косинусом угла между I и \Delta X.
+X_train = delta[features[::-1]].copy()
+Y_train = (data_sm['X'] - data_sm['R']).loc[(data_sm['X']>left) & (data_sm['X'] < right)].copy()
+>>>>>>> 6829b59c5f885efcb2e30ac85bc277b8e75c5a07
 model = lm.LinearRegression(fit_intercept=False, positive=True)
 for wnd in values:
-    model.fit(X_train[features[:wnd]], y_train)
-    norms = [np.linalg.norm(y_train - X_train[f]) for f in features[:wnd]]
-    plot_weights(tex_features[:wnd], model.coef_, norms, show_fig=False, sorting=False)
-
+    model.fit(X_train[features[:wnd]], Y_train)
+    scal  = np.array([np.dot(Y_train, X_train[f]) for f in features[:wnd]])
+    norms = np.array([np.linalg.norm(Y_train) * np.linalg.norm(X_train[f]) for f in features[:wnd]])
+    coss  = scal / norms
+    plot_weights(tex_features[:wnd], model.coef_, coss, show_fig=False, sorting=False)
 
 for wnd in values:
     model.fit(X_train[features[:wnd]], y_train)
@@ -156,3 +147,51 @@ for wnd in values:
 # ax.legend(tags_regr)
 # plt.title('Coefficients of regression')
 # plt.savefig('results/{0}_{1}_regrCoeffs.pdf'.format(country, name))
+=======
+    model.fit(X_train[features[:wnd]], Y_train)
+    plot_infected(model, X_train[features[:wnd]], Y_train, 25)
+
+tags_regr = []
+for val in values:
+    tags_regr.append('$ I_{' + str(val) + '} $')
+coefs = pd.DataFrame(np.zeros((values.max(), values.size)), index=range(1, values.max()+1), columns=tags_regr)
+
+# Построение совместного графика I, \Delta R и \Delta X.
+data_sm['I'] = data_sm['X'] - data_sm['R']
+data_cut = data_sm[(data_sm['X'] > left) & (data_sm['X'] < right)].copy()
+poss = np.array([np.dot(Y_train, X_train[f]) / np.linalg.norm(X_train[f]) for f in features]).argmax()
+
+fig, ax = plt.subplots()
+legend = ['I', '$ \Delta R $', '$ \Delta X_{' + str(poss) + '} $']
+
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+ax.plot(data_cut['X'], scaler.fit_transform(data_cut[['I']]))
+ax.plot(data_cut['X'], scaler.fit_transform(data_cut[['dR']]))
+ax.plot(delta['X'], scaler.fit_transform(delta[[features[poss]]]))
+
+ax.legend(legend)
+plt.title(country)
+plt.savefig('results/Belarus_IdRdX.pdf')
+
+# Построение регрессии для возростающей и убывающей частей первой волны.
+fig, ax = plt.subplots()
+legend = ['I', 'left regression', 'right regression']
+ax.plot(data_cut['X'], data_cut['I'])
+
+border = data_cut.index[data_cut['I'].argmax()]
+frames = [data_cut[data_cut.index <= border],
+          data_cut[data_cut.index >= border]]
+
+for frame in frames:
+    model = lm.LinearRegression(fit_intercept=False, positive=True)
+    X_train = delta[features[::-1]].loc[frame.index].copy()[features[:values.max()]]
+    Y_train = data_sm['I'].loc[frame.index].copy()
+    model.fit(X_train, Y_train)
+    ax.plot(frame['X'], model.predict(X_train))
+   
+ax.legend(legend) 
+plt.title(country)
+plt.savefig('results/Belarus_left-right_regression.pdf')
+plt.close()
+>>>>>>> 6829b59c5f885efcb2e30ac85bc277b8e75c5a07
