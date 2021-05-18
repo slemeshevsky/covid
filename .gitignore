@@ -10,3 +10,4 @@ GTAGS
 /.ipynb_checkpoints/
 /Untitled.ipynb
 /__pycache__/
+*.gz

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from IPython.core.pylabtools import figsize
+#from IPython.core.pylabtools import figsize
 from covid.utils import read
 from covid.preprocess import smooth_average
 
@@ -12,6 +12,8 @@ import pandas as pd
 import patsy as pt
 import sklearn.linear_model as lm
 
+
+plt.ioff()
 
 def calc_delta(data, n = 1):
     delta = np.zeros_like(data['X'].values)
@@ -38,7 +40,7 @@ def calc_deltas(data, wnds=[1]):
         data[tag].fillna(0., inplace=True)
     return tags, tex_tags
 
-def plot_weights(features, weights, norms, show_fig=True, sorting=True):
+def plot_weights(features, weights, norms, show_fig=False, sorting=True):
     fig, axs = plt.subplots(ncols=2)
     if sorting:
         sorted_weights = sorted(zip(weights, features, norms), reverse=True)
@@ -54,11 +56,11 @@ def plot_weights(features, weights, norms, show_fig=True, sorting=True):
     axs[0].set_xlabel("Веса")
     axs[0].set_title("Коэффициенты регрессии")
 
-    sns.barplot(x=norms, y=features, ax=axs[1])
+    sns.scatterplot(x=norms, y=features, ax=axs[1])
     axs[1].set_title('$|| I - \delta_k$ ||')
-    
+
     fig.suptitle('Окно = {}'.format(len(features)))
-    plt.savefig('results/Belarus_regrCoeffs_wind_{}.pdf'.format(len(features)))
+    plt.savefig('results/Belarus_regrCoeffs_wind_{}'.format(len(features)))
     if show_fig:
         plt.show()
 
@@ -79,8 +81,6 @@ def plot_infected(model, x_train, y_train, n):
     fig.suptitle('Распределение инфицированных для окна {}'.format(len(model.coef_)))
     plt.savefig('results/Belarus_infected_{}'.format(len(model.coef_)))
 
-    
-
 path = '../COVID-19/'
 
 country = 'Belarus'
@@ -96,7 +96,7 @@ features, tex_features = calc_deltas(delta, values)
 X_train = delta[features[::-1]].copy()
 y_train = (data_sm['X'] - data_sm['R']).loc[(data_sm['X']>left) & (data_sm['X'] < right)].copy()
 
-model = lm.LinearRegression(positive=True)
+model = lm.LinearRegression(fit_intercept=False, positive=True)
 for wnd in values:
     model.fit(X_train[features[:wnd]], y_train)
     norms = [np.linalg.norm(y_train - X_train[f]) for f in features[:wnd]]
@@ -105,54 +105,54 @@ for wnd in values:
 
 for wnd in values:
     model.fit(X_train[features[:wnd]], y_train)
-    plot_infected(model, X_train[features[:wnd]], y_train, 25)
+    plot_infected(model, X_train[features[:wnd]], y_train, 27)
 
 
-tags_regr = []
-for val in values:
-    tags_regr.append('$ I_{' + str(val) + '} $')
-coefs = pd.DataFrame(np.zeros((values.max(), values.size)), index=range(1, values.max()+1), columns=tags_regr)
+# tags_regr = []
+# for val in values:
+#     tags_regr.append('$ I_{' + str(val) + '} $')
+# coefs = pd.DataFrame(np.zeros((values.max(), values.size)), index=range(1, values.max()+1), columns=tags_regr)
 
-fig, ax = plt.subplots()
-legend = ['I']
-ax.plot(deltas['X'], deltas['I'])
-# Plotting regression from X.
-skm = lm.LinearRegression(fit_intercept=False, positive=True)
-for n in values:
-    tag = '$ I_{' + str(n) + '} $'
-    x = pd.DataFrame(deltas, columns=[*tags_deltas[:n]]).to_numpy()
-    #x = pd.DataFrame(deltas, columns=[*reversed(tags_deltas[:n])]).to_numpy() # - for reversed data vectors.
-    y = deltas['I'].values
-    skm.fit(x, y)
-    result = np.zeros_like(y)
-    for i in range(n):
-        result += skm.coef_[i]*x[:,i]
-    coefs[tag][:n] = skm.coef_
-    #coefs[tag][-n:] = skm.coef_ # - shift reversed values.
-    deltas[tag] = result
+# fig, ax = plt.subplots()
+# legend = ['I']
+# ax.plot(deltas['X'], deltas['I'])
+# # Plotting regression from X.
+# skm = lm.LinearRegression(fit_intercept=False, positive=True)
+# for n in values:
+#     tag = '$ I_{' + str(n) + '} $'
+#     x = pd.DataFrame(deltas, columns=[*tags_deltas[:n]]).to_numpy()
+#     #x = pd.DataFrame(deltas, columns=[*reversed(tags_deltas[:n])]).to_numpy() # - for reversed data vectors.
+#     y = deltas['I'].values
+#     skm.fit(x, y)
+#     result = np.zeros_like(y)
+#     for i in range(n):
+#         result += skm.coef_[i]*x[:,i]
+#     coefs[tag][:n] = skm.coef_
+#     #coefs[tag][-n:] = skm.coef_ # - shift reversed values.
+#     deltas[tag] = result
 
-    legend.append(tag)
-    ax.plot(deltas['X'], deltas[tag], linewidth=1)
-ax.legend(legend)
-plt.title(country)
-plt.savefig('results/{0}_{1}_regrIfromX.pdf'.format(country, name))
-# Plotting regression from time.
-fig, ax = plt.subplots()
-legend = ['I']
-ax.plot(deltas.index, deltas['I'])
-for n in values:
-    tag = '$ I_{' + str(n) + '} $'
-    legend.append(tag)
-    ax.plot(deltas.index, deltas[tag], linewidth=1)
-ax.legend(legend)
-plt.title(country)
-plt.xticks(rotation=90)
-plt.subplots_adjust(bottom=0.2)
-plt.savefig('results/{0}_{1}_regrIfromT.pdf'.format(country, name))
-# Plotting coefficients.
-fig, ax = plt.subplots()
-for tag in tags_regr:
-    ax.plot(coefs.index, coefs[tag])
-ax.legend(tags_regr)
-plt.title('Coefficients of regression')
-plt.savefig('results/{0}_{1}_regrCoeffs.pdf'.format(country, name))
+#     legend.append(tag)
+#     ax.plot(deltas['X'], deltas[tag], linewidth=1)
+# ax.legend(legend)
+# plt.title(country)
+# plt.savefig('results/{0}_{1}_regrIfromX.pdf'.format(country, name))
+# # Plotting regression from time.
+# fig, ax = plt.subplots()
+# legend = ['I']
+# ax.plot(deltas.index, deltas['I'])
+# for n in values:
+#     tag = '$ I_{' + str(n) + '} $'
+#     legend.append(tag)
+#     ax.plot(deltas.index, deltas[tag], linewidth=1)
+# ax.legend(legend)
+# plt.title(country)
+# plt.xticks(rotation=90)
+# plt.subplots_adjust(bottom=0.2)
+# plt.savefig('results/{0}_{1}_regrIfromT.pdf'.format(country, name))
+# # Plotting coefficients.
+# fig, ax = plt.subplots()
+# for tag in tags_regr:
+#     ax.plot(coefs.index, coefs[tag])
+# ax.legend(tags_regr)
+# plt.title('Coefficients of regression')
+# plt.savefig('results/{0}_{1}_regrCoeffs.pdf'.format(country, name))
