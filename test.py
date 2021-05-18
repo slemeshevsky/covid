@@ -85,7 +85,6 @@ features, tex_features = calc_deltas(delta, values)
 # Построение графиков коэффициентов с косинусом угла между I и \Delta X.
 X_train = delta[features[::-1]].copy()
 Y_train = (data_sm['X'] - data_sm['R']).loc[(data_sm['X']>left) & (data_sm['X'] < right)].copy()
->>>>>>> 6829b59c5f885efcb2e30ac85bc277b8e75c5a07
 model = lm.LinearRegression(fit_intercept=False, positive=True)
 for wnd in values:
     model.fit(X_train[features[:wnd]], Y_train)
@@ -147,7 +146,7 @@ for wnd in values:
 # ax.legend(tags_regr)
 # plt.title('Coefficients of regression')
 # plt.savefig('results/{0}_{1}_regrCoeffs.pdf'.format(country, name))
-=======
+
     model.fit(X_train[features[:wnd]], Y_train)
     plot_infected(model, X_train[features[:wnd]], Y_train, 25)
 
@@ -189,9 +188,8 @@ for frame in frames:
     Y_train = data_sm['I'].loc[frame.index].copy()
     model.fit(X_train, Y_train)
     ax.plot(frame['X'], model.predict(X_train))
-   
-ax.legend(legend) 
+
+ax.legend(legend)
 plt.title(country)
 plt.savefig('results/Belarus_left-right_regression.pdf')
 plt.close()
->>>>>>> 6829b59c5f885efcb2e30ac85bc277b8e75c5a07
