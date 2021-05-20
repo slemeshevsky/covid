@@ -99,7 +99,8 @@ def smooth_s(data, coef):
 
 def smooth_average(data, period):
     """
-    Осуществляет сглаживание данных по среднему значению за период.
+    Осуществляет сглаживание данных по среднему значению за период. 
+    После перестраивает значение дельт.
 
     Параметры
     _________
@@ -116,4 +117,33 @@ def smooth_average(data, period):
     from covid.utils import recalculate_deltas
     smooth_data = data.rolling(period).mean().dropna()
     recalculate_deltas(smooth_data)
+    return smooth_data
+
+
+
+def smooth_average_deltas(data, period):
+    """
+    Осуществляет сглаживание дельт данных по среднему значению за период.
+    После перестраивает значения данных по новым дельтам.
+
+    Параметры
+    _________
+    data : pandas.DataFrame
+        Данные для сглаживания.
+    period : int
+        Размер интервала сглаживания.
+
+    Возвращаемые значения
+    _____________________
+    smooth_data : pandas.DataFrame
+        Массив сглаженных значений.
+    """
+    from covid.utils import recalculate_deltas
+    smooth_data = data.rolling(period).mean().dropna()
+    for val in ['X', 'R', 'D']:
+        if val in data.columns:
+            col = np.zeros_like(data[val].values, dtype='float64')
+            col[0] = data[val].values[0]
+            col[1:] = data[val].values[:-1] + data['d' + val].values[1:]
+            data[val] = col
     return smooth_data
