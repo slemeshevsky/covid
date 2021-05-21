@@ -148,60 +148,19 @@ def clean_work_columns(data):
             del data[col]
 
 
-def plot_s_w(data, cols=['X'], plot_sk=False, spacing=.2):
-    colors = getattr(getattr(pd.plotting, '_matplotlib').style, '_get_standard_colors')(num_colors=len(cols)+2)
-    ax = data[cols[0]].plot(label=cols[0], color=colors[0])
-    ax.set_ylabel(ylabel=cols[0])
-    lines, labels = ax.get_legend_handles_labels()
-    for n in range(1, len(cols)):
-        ax_n = ax.twinx()
-        ax_n.spines['right'].set_position(('axes', 1 + spacing * (n - 1)))
-        data[cols[n]].plot(ax=ax_n, label=cols[n], color=colors[n % len(colors)])
-        ax_n.set_ylabel(ylabel=cols[n])
-        line, label = ax_n.get_legend_handles_labels()
-        lines += line
-        labels += label
+def calc_deltas(data, wnds=[1]):
+    tags = []
+    tex_tags = []
+    for i in range(wnds[-1]):
+        tag = 'dX' + str(i+1)
+        tags.append(tag)
+        tex_tag = '$\\delta_{{{}}}$'.format(i+1)
+        tex_tags.append(tex_tag)
+        data[tag] = data['dX'].shift(periods=i)
+        data[tag].fillna(0., inplace=True)
+    return tags, tex_tags
 
-    ax_new = ax.twinx()
-    ax_new.spines['right'].set_position(('axes', 1))
-    if plot_sk:
-        data[['S_k']].plot(ax=ax_new, label=['S'], color=colors[-1])
-    data[['W']].plot(ax=ax_new, label=['W'], color=colors[-2])
-    ax_new.set_ylabel(ylabel='$S, W$')
-    ax_new.grid(linestyle=':')
-    line, label = ax_new.get_legend_handles_labels()
-    # lines += line
-    # labels += label
-    ax.legend(lines, labels, loc=0)
-    return ax
-
-
-def plot_multi(data, cols=None, spacing=0.05, **kwargs):
-    from pandas import plotting
-
-    # Get default color style from pandas - can be changed to any other color list
-    if cols is None:
-        cols = data.columns
-    if len(cols) == 0:
-        return
-    colors = getattr(getattr(plotting, '_matplotlib').style, '_get_standard_colors')(num_colors=len(cols))
-
-    # First axis
-    ax = data.loc[:, cols[0]].plot(label=cols[0], color=colors[0], **kwargs)
-    ax.set_ylabel(ylabel=cols[0])
-    lines, labels = ax.get_legend_handles_labels()
-
-    for n in range(1, len(cols)):
-        # Multiple y-axes
-        ax_new = ax.twinx()
-        ax_new.spines['right'].set_position(('axes', 1 + spacing * (n - 1)))
-        data.loc[:, cols[n]].plot(ax=ax_new, label=cols[n], color=colors[n % len(colors)], **kwargs)
-        ax_new.set_ylabel(ylabel=cols[n])
-
-        # Proper legend position
-        line, label = ax_new.get_legend_handles_labels()
-        lines += line
-        labels += label
-
-    ax.legend(lines, labels, loc=0)
-    return ax
+def v_cos(x, y):    
+    scal = np.dot(x, y)
+    norm = np.linalg.norm(x) * np.linalg.norm(y)
+    return scal / norm
