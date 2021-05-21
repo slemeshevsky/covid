@@ -9,11 +9,9 @@ import numpy as np
 import seaborn as sns
 
 import pandas as pd
-import patsy as pt
 import sklearn.linear_model as lm
 
-
-plt.ioff()
+#plt.ioff()
 
 def calc_deltas(data, wnds=[1]):
     tags = []
@@ -94,8 +92,8 @@ for wnd in values:
     plot_weights(tex_features[:wnd], model.coef_, coss, show_fig=False, sorting=False)
 
 for wnd in values:
-    model.fit(X_train[features[:wnd]], y_train)
-    plot_infected(model, X_train[features[:wnd]], y_train, 27)
+    model.fit(X_train[features[:wnd]], Y_train)
+    plot_infected(model, X_train[features[:wnd]], Y_train, 27)
 
 
 # tags_regr = []
