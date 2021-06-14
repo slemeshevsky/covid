@@ -25,7 +25,17 @@ class ConstrainedLinearRegression(LinearRegression, RegressorMixin):
         beta = np.zeros(X.shape[1]).astype(float)
         prev_beta = beta + 1
         hessian = np.dot(X.transpose(), X)
-        while not (np.abs(prev_beta - beta)<self.tol).all():
+
+        counter = 0
+        max_counter = 100000
+        #while not(np.linalg.norm(np.dot(X, beta) - y) < self.tol):
+        while not (np.abs(prev_beta - beta) < self.tol).all():
+            #counter = counter + 1
+            #if counter % 1000 == 0:
+            #    print(counter)
+            #if counter >= max_counter:
+            #    break
+
             prev_beta = beta.copy()
             for i in range(len(beta)):
                 grad = np.dot(np.dot(X, beta) - y, X)

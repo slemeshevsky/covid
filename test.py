@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from IPython.core.pylabtools import figsize
-from covid.BelarusDataProcessor import BelarusDataProcessor
+from covid.CountryDataProcessor import CountryDataProcessor as CDP
+from covid.cdp_fabric import get_country_data_processor
 from covid.plotting import plot_weights, plot_infected
 from covid.preprocess import smooth_average
 from covid.utils import read, calc_deltas
@@ -20,12 +21,12 @@ def bel_plot_IdRDx():
     # Построение совместного графика I, I_theor, \Delta R и \Delta X, наиболее приближённого к I.
     num = 42
     alpha = 0.025
+    
+    cdp, country_info = get_country_data_processor('Belarus')
+    cdp.read_data(with_smooth=True)
 
-    bdp = BelarusDataProcessor()
-    bdp.read_data(with_smooth=True)
-
-    data_cut = bdp.get_wave()
-    delta, features, tex_features = bdp.calc_deltas(num, data_cut.index)
+    data_cut = cdp.get_wave()
+    delta, features, tex_features = cdp.calc_deltas(num, data_cut.index)
 
     X_train = delta[features[::-1]].copy()
     Y_train = data_cut['I'].copy()
@@ -49,14 +50,102 @@ def bel_plot_IdRDx():
     ax.plot(data_cut['X'], scaler.fit_transform(delta[[features[poss]]]))
 
     ax.legend(legend)
-    plt.title(bdp.country)
+    plt.title(cdp.country)
     plt.savefig('results/Belarus_IdRdX.pdf')
 
 
-bdp = BelarusDataProcessor()
-bdp.read_data(with_smooth=True)
+def calc_regression(X, p):
+    result = np.zeros_like(X[:, 0])
+    for i in range(p.size):
+        result += X[:, i] * p[i]
+    return result
 
-#bdp.build_regression(with_constrains=True, values=np.array([40]))
-#bdp.build_double_regression(with_constrains=False)
 
-bel_plot_IdRDx()
+def lin_appr(country='Belarus', num_wave=1, with_scale=False):
+    # Построение аппроксимации инфецированных с помощью искуственных коэффициентов (линейных).
+    N = 40
+
+    cdp, country_info = get_country_data_processor(country)
+    
+    data_cut = cdp.get_wave(num_wave)
+    deltas, features, tex_features = cdp.calc_deltas(N, data_cut.index)
+    
+    if with_scale:
+        from sklearn.preprocessing import MinMaxScaler
+        scaler = MinMaxScaler()
+
+    for L in range(N+1):
+        p = np.ones(N+1)
+        p[L:] = (N+1 - np.arange(L, N+1)) / float(N+1-L)
+        regr = calc_regression(deltas.to_numpy(), p)
+
+        if with_scale:
+            I = scaler.fit_transform(data_cut[['I']])
+            regression = scaler.fit_transform(regr.reshape(-1, 1))
+        else:
+            I = data_cut['I']
+            regression = regr
+
+        fig, ax = plt.subplots()
+        legend = ['I', 'Regression']
+        ax.plot(data_cut.index, I)
+        ax.plot(data_cut.index, regression)
+        ax.legend(legend) 
+        plt.title('{0}, L = {1}'.format(country, L))
+        plt.savefig('results/{0}_lin_regression_L{1}{2}.pdf'.format(country, L, ('_scaled' if with_scale else '')))
+        plt.close()
+
+
+def geom_appr(country='Belarus', num_wave=1, with_scale=False):
+    # Построение аппроксимации инфецированных с помощью искуственных коэффициентов (геометрических).
+    N = 40
+
+    h = 0.1
+    q = np.arange(h, 1, h)
+
+    cdp, country_info = get_country_data_processor(country)
+
+    data_cut = cdp.get_wave(num_wave)
+    deltas, features, tex_features = cdp.calc_deltas(N, data_cut.index)
+
+    if with_scale:
+        from sklearn.preprocessing import MinMaxScaler
+        scaler = MinMaxScaler()
+
+    for L in range(N+1):
+        regr = np.zeros([len(q), len(data_cut.index)])
+        p = np.ones([len(q), N+1])
+        for i in range(len(q)):
+            p[i, L:] = q[i] ** np.arange(1, N-L+2)
+            regr[i] = calc_regression(deltas.to_numpy(), p[i])
+
+        fig, ax = plt.subplots()
+        legend = ['I']
+        if with_scale:
+            I = scaler.fit_transform(data_cut[['I']])
+        else:
+            I = data_cut['I']
+        ax.plot(data_cut['X'], I)
+
+        for i in range(len(q)):
+            legend.append('q = {:1.2f}'.format(q[i]))
+            if with_scale:
+                regression = scaler.fit_transform(regr[i].reshape(-1, 1))
+            else:
+                regression = regr[i]
+            ax.plot(data_cut['X'], regression)
+
+        ax.legend(legend) 
+        plt.title('{0}, L = {1}'.format(country, L))
+        plt.savefig('results/{0}_geom_regression_L{1}{2}.pdf'.format(country, L, ('_scaled' if with_scale else '')))
+        plt.close()
+
+
+#cdp, country_info = get_country_data_processor('Belarus')
+#cdp.read_data(with_smooth=True)
+#cdp.build_regression(with_constrains=True, values=np.array([40]))
+#cdp.build_double_regression(num=country_info['double_regression_max_num'], with_constrains=True)
+
+for with_scale in [False, True]:
+    lin_appr(with_scale=with_scale)
+    geom_appr(with_scale=with_scale)

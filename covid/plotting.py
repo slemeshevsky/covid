@@ -63,7 +63,7 @@ def plot_multi(data, cols=None, spacing=0.05, **kwargs):
     return ax
 
 
-def plot_weights(features, weights, norms, show_fig=True, sorting=True):
+def plot_weights(country, features, weights, norms, show_fig=True, sorting=True):
     fig, axs = plt.subplots(ncols=2)
     if sorting:
         sorted_weights = sorted(zip(weights, features, norms), reverse=True)
@@ -83,13 +83,13 @@ def plot_weights(features, weights, norms, show_fig=True, sorting=True):
     axs[1].set_title(r"$ \frac{(I, \delta_k)}{||I|| \cdot ||\delta_k||} $")
     
     fig.suptitle('Окно = {}'.format(len(features)))
-    plt.savefig('results/Belarus_regrCoeffs_wind_{}.pdf'.format(len(features)))
+    plt.savefig('results/{0}_regrCoeffs_wind_{1}.pdf'.format(country, len(features)))
     if show_fig:
         plt.show()
     plt.close()
 
 
-def plot_infected(model, x_train, y_train, n):
+def plot_infected(country, model, x_train, y_train, n):
     y_pred = model.predict(x_train)
     coef_first = model.coef_.copy()
     coef_second = model.coef_.copy()
@@ -105,5 +105,5 @@ def plot_infected(model, x_train, y_train, n):
     
     plt.xticks(rotation=20)
     fig.suptitle('Распределение инфицированных для окна {}'.format(len(model.coef_)))
-    plt.savefig('results/Belarus_infected_{}.pdf'.format(len(model.coef_)))
+    plt.savefig('results/{0}_infected_{1}.pdf'.format(country, len(model.coef_)))
     plt.close()
