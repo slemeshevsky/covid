@@ -136,10 +136,9 @@ wave : Границы волн.
                 model.fit(X_train[features[:wnd]], Y_train, min_coef=np.zeros(wnd), max_coef=np.ones(wnd))
             else:
                 model.fit(X_train[features[:wnd]], Y_train)
-            model.coef_ = np.ones(wnd)
             coss = np.array([v_cos(Y_train, X_train[f]) for f in features[:wnd]])
             plot_weights(self.country, tex_features[:wnd], model.coef_, coss, show_fig=False, sorting=False)
-            plot_infected(self.country, model, X_train[features[:wnd]], Y_train, 25)
+            plot_infected(self.country, model, X_train[features[:wnd]], Y_train, 25, data_cut['X'])
 
 
     def build_double_regression(self, num=10, wave=1, with_constrains=False):

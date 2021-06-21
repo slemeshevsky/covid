@@ -146,6 +146,52 @@ def geom_appr(country='Belarus', num_wave=1, with_scale=False):
 #cdp.build_regression(with_constrains=True, values=np.array([40]))
 #cdp.build_double_regression(num=country_info['double_regression_max_num'], with_constrains=True)
 
-for with_scale in [False, True]:
-    lin_appr(with_scale=with_scale)
-    geom_appr(with_scale=with_scale)
+#for with_scale in [False, True]:
+#    lin_appr(with_scale=with_scale)
+#    geom_appr(with_scale=with_scale)
+
+
+cdp, country_info = get_country_data_processor('Belarus')
+cdp.read_data(with_smooth=True)
+num = 40
+
+data_cut = cdp.get_wave()
+delta, features, tex_features = cdp.calc_deltas(num)
+
+X_train = delta[features[::-1]].loc[data_cut.index].copy()
+Y_train = data_cut['I'].copy()
+      
+from covid.ConstrainedLinearRegression import ConstrainedLinearRegression 
+from covid.utils import v_cos 
+model = ConstrainedLinearRegression()
+model.fit(X_train[features[:num]], Y_train, min_coef=np.zeros(num), max_coef=np.ones(num))
+
+print(model.coef_)
+print(model.intercept_)
+
+model.coef_ = np.ones_like(model.coef_)
+coss = np.array([v_cos(Y_train, X_train[f]) for f in features[:num]])
+
+y_model = model.predict(X_train[features[::-1]])
+y_test = calc_regression(X_train[features[::-1]].to_numpy(), model.coef_)
+
+fig, ax = plt.subplots()
+sns.lineplot(x=data_cut.index, 
+             y=data_cut['I'], 
+             ax=ax, 
+             label='Сглаженные данные')
+sns.lineplot(x=data_cut.index, 
+             y=y_model, 
+             ax=ax, 
+             label='Регрессия')
+sns.lineplot(x=data_cut.index, 
+             y=y_test, 
+             ax=ax, 
+             label='Регрессия (тест функции)')
+
+plt.xticks(rotation=20)
+
+norm = np.linalg.norm(y_model - y_test)
+fig.suptitle('Норма разницы построенных регрессий {}'.format(norm))
+plt.savefig('results/{0}_infected_{1}.pdf'.format(cdp.country, num))
+plt.close()

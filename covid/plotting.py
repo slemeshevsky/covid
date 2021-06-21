@@ -89,7 +89,7 @@ def plot_weights(country, features, weights, norms, show_fig=True, sorting=True)
     plt.close()
 
 
-def plot_infected(country, model, x_train, y_train, n):
+def plot_infected(country, model, x_train, y_train, n, x):
     y_pred = model.predict(x_train)
     coef_first = model.coef_.copy()
     coef_second = model.coef_.copy()
@@ -98,8 +98,11 @@ def plot_infected(country, model, x_train, y_train, n):
     y_pred_1 = np.dot(coef_first, x_train.T)
     y_pred_2 = np.dot(coef_second, x_train.T)
     fig, ax = plt.subplots()
-    sns.lineplot(x=x_train.index, y=y_train, ax=ax, label='Сглаженные данные')
-    sns.lineplot(x=x_train.index, y=y_pred, ax=ax, label='Регрессия')
+    sns.lineplot(x=x, y=y_train, ax=ax, label='Сглаженные данные') # по X
+    sns.lineplot(x=x, y=y_pred, ax=ax, label='Регрессия') # по X
+    #sns.lineplot(x=x_train.index, y=y_train, ax=ax, label='Сглаженные данные') # по t
+    #sns.lineplot(x=x_train.index, y=y_pred, ax=ax, label='Регрессия') # по t
+
     #sns.lineplot(x=x_train.index, y=y_pred_1, ax=ax, label='Первая группа коэффициентов')
     #sns.lineplot(x=x_train.index, y=y_pred_2, ax=ax, label='Вторая группа коэффициентов')
     
