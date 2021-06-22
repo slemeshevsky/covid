@@ -10,8 +10,8 @@ import pandas as pd
 import seaborn as sns
 import sklearn.linear_model as lm
 
-class BelarusDataProcessor(object):
-    """Класс для обработки эпидемиологических данных по Беларус.
+class CountryDataProcessor(object):
+    """Класс для обработки эпидемиологических данных по выбранной стране.
 
 Parameters
 ----------
@@ -21,13 +21,29 @@ wave : Границы волн.
 
     """
 
-    def __init__(self):
+
+    def __init__(self, country, waves=[0, 0]):
         """
     Инициализирует объект
         """
         self.data = pd.DataFrame()
-        self.country = 'Belarus'
-        self.wave = [0, 70000]
+        self.country = country
+        self.wave = waves
+
+    
+    def update_country_info(self, country):
+        if country == 'Belarus':
+            self.country = country
+            self.waves = [0, 70000]
+            self.double_regression_max_num = 64
+            self.regression_values = np.arange(38, 43)
+        else:
+            self.country = ""
+            self.waves = [0, 0]
+            self.double_regression_max_num = 1
+            self.regression_values = np.arange(0, 2)
+            print("Haven't information about country {}.".format(country))
+
 
     def read_data(self, with_smooth=False, path='../COVID-19/'):
         """
@@ -94,7 +110,7 @@ wave : Границы волн.
         return delta, features, tex_features
 
 
-    def build_regression(self, values=np.arange(38, 43), wave=1, with_constrains=False):
+    def build_regression(self, values, wave=1, with_constrains=False):
         """
     Построение регрессии для выбранной волны заболевания.
     Построение коэффициентов регрессии с косинусом угла между I и \Delta X.
@@ -121,11 +137,11 @@ wave : Границы волн.
             else:
                 model.fit(X_train[features[:wnd]], Y_train)
             coss = np.array([v_cos(Y_train, X_train[f]) for f in features[:wnd]])
-            plot_weights(tex_features[:wnd], model.coef_, coss, show_fig=False, sorting=False)
-            plot_infected(model, X_train[features[:wnd]], Y_train, 25)
+            plot_weights(self.country, tex_features[:wnd], model.coef_, coss, show_fig=False, sorting=False)
+            plot_infected(self.country, model, X_train[features[:wnd]], Y_train, 25, data_cut['X'])
 
 
-    def build_double_regression(self, wave=1, with_constrains=False):
+    def build_double_regression(self, num=10, wave=1, with_constrains=False):
         """
     Построение регрессии для возростающей и убывающей частей выбранной волны.
 
@@ -136,7 +152,6 @@ wave : Границы волн.
     with_constrains : bool
         Ограничение коэффициентов регрессии меньше единицы.
         """
-        num = 64
         data_cut = self.get_wave()
         delta, features, tex_features = self.calc_deltas(num, data_cut.index)
         border = data_cut.index[data_cut['I'].argmax()]
@@ -145,7 +160,7 @@ wave : Границы волн.
         legend = ['I', 'left regression', 'right regression']
         ax.plot(data_cut['X'], data_cut['I'])
 
-        model = (ConstrainedLinearRegression() if with_constrains else lm.LinearRegression(fit_intercept=False, positive=True))
+        model = (ConstrainedLinearRegression(fit_intercept=False) if with_constrains else lm.LinearRegression(fit_intercept=False, positive=True))
 
         frames = [{'name': 'left',  'data': data_cut[data_cut.index <= border]},
                   {'name': 'right', 'data': data_cut[data_cut.index >= border]}]
@@ -156,13 +171,16 @@ wave : Границы волн.
 
             X_train = delta[features[::-1]].loc[index].copy()
             Y_train = data['I'].copy()
+
             if with_constrains:
                 model.fit(X_train, Y_train, min_coef=np.zeros(num), max_coef=np.ones(num))
             else:
                 model.fit(X_train, Y_train)
 
-            ax.plot(data['X'], model.predict(X_train.loc[index]))
+            predict = model.predict(X_train.loc[index])
+            ax.plot(data['X'], predict)
 
+            diff = np.linalg.norm(predict - Y_train.to_numpy())
             coss = np.array([v_cos(Y_train, X_train[f]) for f in features[::-1]])
 
             fig, axs = plt.subplots(ncols=2)
@@ -171,7 +189,7 @@ wave : Границы волн.
             axs[0].set_title("Коэффициенты регрессии")
             sns.barplot(x=coss, y=tex_features[::-1], ax=axs[1])
             axs[1].set_title(r"$ \frac{(I, \delta_k)}{||I|| \cdot ||\delta_k||} $")
-            fig.suptitle('Окно = {}'.format(len(tex_features[::-1])))
+            fig.suptitle('Окно = {0} ({1})'.format(len(tex_features), diff))
 
             plt.savefig('results/Belarus_left-right_regrCoeffs_{}.pdf'.format(name))
             plt.close()
