@@ -66,8 +66,8 @@ path = '../COVID-19/'
 def bel_plot_IdRDx():
     # Построение совместного графика I, I_theor, \Delta R и \Delta X, наиболее приближённого к I.
     num = 42
-    alpha = 0.025
-    
+    alpha = 0.02
+
     cdp, country_info = get_country_data_processor('Belarus')
     cdp.read_data(with_smooth=True)
 
@@ -112,10 +112,10 @@ def lin_appr(country='Belarus', num_wave=1, with_scale=False):
     N = 40
 
     cdp, country_info = get_country_data_processor(country)
-    
+
     data_cut = cdp.get_wave(num_wave)
     deltas, features, tex_features = cdp.calc_deltas(N, data_cut.index)
-    
+
     if with_scale:
         from sklearn.preprocessing import MinMaxScaler
         scaler = MinMaxScaler()
@@ -181,7 +181,7 @@ def geom_appr(country='Belarus', num_wave=1, with_scale=False):
                 regression = regr[i]
             ax.plot(data_cut['X'], regression)
 
-        ax.legend(legend) 
+        ax.legend(legend)
         plt.title('{0}, L = {1}'.format(country, L))
         plt.savefig('results/{0}_geom_regression_L{1}{2}.pdf'.format(country, L, ('_scaled' if with_scale else '')))
         plt.close()
@@ -206,9 +206,9 @@ delta, features, tex_features = cdp.calc_deltas(num)
 
 X_train = delta[features[::-1]].loc[data_cut.index].copy()
 Y_train = data_cut['I'].copy()
-      
-from covid.ConstrainedLinearRegression import ConstrainedLinearRegression 
-from covid.utils import v_cos 
+
+from covid.ConstrainedLinearRegression import ConstrainedLinearRegression
+from covid.utils import v_cos
 model = ConstrainedLinearRegression()
 model.fit(X_train[features[:num]], Y_train, min_coef=np.zeros(num), max_coef=np.ones(num))
 
@@ -222,17 +222,17 @@ y_model = model.predict(X_train[features[::-1]])
 y_test = calc_regression(X_train[features[::-1]].to_numpy(), model.coef_)
 
 fig, ax = plt.subplots()
-sns.lineplot(x=data_cut.index, 
-             y=data_cut['I'], 
-             ax=ax, 
+sns.lineplot(x=data_cut.index,
+             y=data_cut['I'],
+             ax=ax,
              label='Сглаженные данные')
-sns.lineplot(x=data_cut.index, 
-             y=y_model, 
-             ax=ax, 
+sns.lineplot(x=data_cut.index,
+             y=y_model,
+             ax=ax,
              label='Регрессия')
-sns.lineplot(x=data_cut.index, 
-             y=y_test, 
-             ax=ax, 
+sns.lineplot(x=data_cut.index,
+             y=y_test,
+             ax=ax,
              label='Регрессия (тест функции)')
 
 plt.xticks(rotation=20)

@@ -160,7 +160,7 @@ def calc_deltas(data, wnds=[1]):
         data[tag].fillna(0., inplace=True)
     return tags, tex_tags
 
-def v_cos(x, y):    
+def v_cos(x, y):
     scal = np.dot(x, y)
     norm = np.linalg.norm(x) * np.linalg.norm(y)
     return scal / norm
